@@ -4,7 +4,7 @@ import { selectDate, getState } from './state.js';
 import { todayKey, shiftDay } from './date.js';
 
 export function attachKeyboard(opts) {
-  const { onHelp, onClose } = opts;
+  const { onHelp, onClose, onToggleCashflow } = opts;
 
   function isEditable(target) {
     if (!target) return false;
@@ -53,6 +53,10 @@ export function attachKeyboard(opts) {
       case '/':
         e.preventDefault();
         focusPlanner();
+        break;
+      case 'm':
+        e.preventDefault();
+        onToggleCashflow?.();
         break;
     }
   }

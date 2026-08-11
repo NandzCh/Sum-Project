@@ -2,13 +2,14 @@
 
 import './styles.css';
 
-import { getState, subscribe } from './state.js';
+import { getState, subscribe, setCashflowView } from './state.js';
 import { renderTitleBar, renderFooter, startClock } from './views/titlebar.js';
 import { renderTomorrow } from './views/tomorrow.js';
 import { renderToday } from './views/today.js';
 import { renderHabits } from './views/habits.js';
 import { renderCalendar } from './calendar.js';
 import { renderInspector } from './views/inspector.js';
+import { renderCashflow } from './views/cashflow.js';
 import { attachKeyboard } from './keyboard.js';
 import { h, qs, clear } from './dom.js';
 
@@ -24,6 +25,16 @@ function mountChrome() {
   root.appendChild(body);
   root.appendChild(footer);
   startClock(qs('#clock', titleBar));
+  // Make the title bar clickable as a tab switcher (habits ↔ cashflow).
+  const titleEl = qs('.titlebar .title', titleBar);
+  if (titleEl) {
+    titleEl.style.cursor = 'pointer';
+    titleEl.title = 'click to switch view';
+    titleEl.addEventListener('click', () => {
+      const { cashflowView } = getState();
+      setCashflowView(!cashflowView);
+    });
+  }
   return { body };
 }
 
@@ -44,21 +55,27 @@ function render() {
       try { selStart = prev.selectionStart; selEnd = prev.selectionEnd; } catch {}
     }
   }
-  refs.body.replaceChildren(
-    h(
-      'div',
-      { class: 'left-stack' },
-      renderToday(state),
-      renderTomorrow(),
-      renderHabits(state),
-    ),
-    h(
-      'div',
-      { class: 'right-stack' },
-      renderCalendar(state),
-      renderInspector(state),
-    ),
-  );
+  if (state.cashflowView) {
+    refs.body.classList.add('body-cashflow');
+    refs.body.replaceChildren(renderCashflow(state));
+  } else {
+    refs.body.classList.remove('body-cashflow');
+    refs.body.replaceChildren(
+      h(
+        'div',
+        { class: 'left-stack' },
+        renderToday(state),
+        renderTomorrow(),
+        renderHabits(state),
+      ),
+      h(
+        'div',
+        { class: 'right-stack' },
+        renderCalendar(state),
+        renderInspector(state),
+      ),
+    );
+  }
   if (focusId) {
     const next = document.getElementById(focusId);
     if (next) {
@@ -70,6 +87,14 @@ function render() {
       } catch {}
     }
   }
+
+  // Update the title bar to reflect the current tab.
+  const titleEl = document.getElementById('app-title');
+  if (titleEl) {
+    titleEl.textContent = state.cashflowView
+      ? 'cashflow — ~/ledger'
+      : 'habit-tracker — ~/journal';
+  }
 }
 render();
 subscribe(render);
@@ -77,7 +102,7 @@ subscribe(render);
 // Help overlay — toggled by `h`.
 const overlay = h('div', {
   class: 'help-overlay',
-  hidden: false,
+  hidden: true,
   onClick: (e) => {
     if (e.target === overlay) overlay.hidden = true;
   },
@@ -98,6 +123,8 @@ overlay.appendChild(
       h('dd', {}, 'next / previous day in inspector'),
       h('dt', {}, h('kbd', {}, '/')),
       h('dd', {}, 'focus the tomorrow-planner input'),
+      h('dt', {}, h('kbd', {}, 'm')),
+      h('dd', {}, 'switch to the cashflow tab (and back)'),
       h('dt', {}, h('kbd', {}, 'Esc')),
       h('dd', {}, 'close help / blur inputs'),
     ),
@@ -147,6 +174,10 @@ attachKeyboard({
       return true;
     }
     return false;
+  },
+  onToggleCashflow: () => {
+    const { cashflowView } = getState();
+    setCashflowView(!cashflowView);
   },
 });
 

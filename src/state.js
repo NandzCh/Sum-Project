@@ -13,6 +13,8 @@ function defaultState() {
     completions: {},
     selectedDate: today,
     viewMonth: { year, month },
+    transactions: [],
+    cashflowView: false,
   };
 }
 
@@ -25,6 +27,8 @@ let state = (() => {
       ...loaded,
       selectedDate: today,
       viewMonth: { year, month },
+      transactions: Array.isArray(loaded.transactions) ? loaded.transactions : [],
+      cashflowView: Boolean(loaded.cashflowView),
     };
   }
   const init = defaultState();
@@ -120,4 +124,69 @@ export function isHabitDone(dateKey, habitId) {
 
 export function habitById(id) {
   return state.habits.find((h) => h.id === id) || null;
+}
+
+// ─── Cashflow ────────────────────────────────────────────────────────
+// A transaction is { id, kind: 'income' | 'outcome', amount: number, label: string, dateKey: YYYY-MM-DD, createdAt: ISO string }.
+// Amounts are always stored as positive numbers — `kind` carries the sign.
+
+function txId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 't_' + Math.random().toString(36).slice(2, 11);
+}
+
+export function addTransaction({ kind, amount, label, dateKey }) {
+  const k = kind === 'income' ? 'income' : 'outcome';
+  const a = Number(amount);
+  if (!Number.isFinite(a) || a <= 0) return null;
+  const tx = {
+    id: txId(),
+    kind: k,
+    amount: a,
+    label: (label || '').trim(),
+    dateKey: dateKey || todayKey(),
+    createdAt: new Date().toISOString(),
+  };
+  commit({ transactions: [...state.transactions, tx] });
+  return tx.id;
+}
+
+export function updateTransaction(id, patch) {
+  commit({
+    transactions: state.transactions.map((t) => {
+      if (t.id !== id) return t;
+      const next = { ...t };
+      if (patch.kind) next.kind = patch.kind === 'income' ? 'income' : 'outcome';
+      if (patch.amount != null) {
+        const a = Number(patch.amount);
+        if (Number.isFinite(a) && a > 0) next.amount = a;
+      }
+      if (patch.label != null) next.label = String(patch.label).trim();
+      if (patch.dateKey) next.dateKey = patch.dateKey;
+      return next;
+    }),
+  });
+}
+
+export function deleteTransaction(id) {
+  commit({ transactions: state.transactions.filter((t) => t.id !== id) });
+}
+
+export function setCashflowView(on) {
+  commit({ cashflowView: Boolean(on) });
+}
+
+export function toggleCashflowView() {
+  commit({ cashflowView: !state.cashflowView });
+}
+
+// Aggregates: returns signed totals so callers can show +income / -outcome in one number.
+export function cashflowTotals(transactions) {
+  let income = 0;
+  let outcome = 0;
+  for (const t of transactions) {
+    if (t.kind === 'income') income += t.amount;
+    else outcome += t.amount;
+  }
+  return { income, outcome, balance: income - outcome };
 }

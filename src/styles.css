@@ -500,6 +500,9 @@ button.primary:disabled {
   justify-content: center;
   z-index: 1000;
 }
+.help-overlay[hidden] {
+  display: none;
+}
 .help-modal {
   background: var(--bg-pane);
   border: var(--line-bright);
@@ -557,4 +560,191 @@ button.primary:disabled {
 .inline-edit input:focus {
   outline: none;
   border-color: var(--amber-bright);
+}
+
+/* ─── Cashflow tab ────────────────────────────────────────────────── */
+
+.body-cashflow {
+  grid-template-columns: minmax(520px, 1fr);
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.pane-cashflow {
+  height: 100%;
+}
+
+.cashflow-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cashflow-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.cashflow-tile {
+  border: var(--line);
+  background: var(--bg-elev);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cashflow-tile .tile-label {
+  color: var(--amber-mute);
+  font-size: 0.8em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cashflow-tile .tile-value {
+  color: var(--amber-bright);
+  font-weight: 700;
+  font-size: 1.15em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--glow-soft);
+  word-break: break-all;
+}
+.cashflow-tile.good .tile-value { color: var(--good); text-shadow: 0 0 4px rgba(158, 255, 122, 0.5); }
+.cashflow-tile.bad .tile-value { color: var(--bad); text-shadow: 0 0 4px rgba(255, 90, 79, 0.5); }
+
+form.cashflow-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+form.cashflow-form .full { grid-column: 1 / -1; }
+form.cashflow-form .cashflow-kind { grid-column: 1 / -1; }
+
+.cashflow-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.cashflow-row input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: var(--line);
+  border-radius: 2px;
+  color: var(--amber-bright);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 6px 8px;
+  text-shadow: var(--glow-soft);
+  caret-color: var(--amber-bright);
+}
+.cashflow-row input:focus {
+  outline: none;
+  border-color: var(--amber-bright);
+  box-shadow: var(--glow-soft);
+}
+.cashflow-row input[type="date"] {
+  flex: 0 0 auto;
+  min-width: 130px;
+  color-scheme: dark;
+}
+
+.cashflow-kind {
+  display: inline-flex;
+  gap: 6px;
+}
+.cashflow-kind .kind-btn {
+  background: transparent;
+  border: var(--line);
+  color: var(--amber-mute);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 4px 12px;
+  cursor: pointer;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+}
+.cashflow-kind .kind-btn:hover {
+  border-color: var(--amber-bright);
+  color: var(--amber);
+}
+.cashflow-kind .kind-btn.active {
+  background: var(--amber);
+  color: var(--bg);
+  border-color: var(--amber-bright);
+  text-shadow: none;
+  box-shadow: var(--glow-strong);
+}
+
+.cashflow-aggregates {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cashflow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.85em;
+  background: var(--bg-elev);
+}
+.cashflow-pill .pill-label {
+  color: var(--amber-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.85em;
+}
+.cashflow-pill .pill-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cashflow-pill.income .pill-value { color: var(--good); }
+.cashflow-pill.outcome .pill-value { color: var(--bad); }
+
+.cashflow-list {
+  display: flex;
+  flex-direction: column;
+}
+.cashflow-date-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 8px 4px;
+  border-top: 1px solid var(--amber-faint);
+  margin-top: 6px;
+}
+.cashflow-date-head:first-child { border-top: none; margin-top: 0; }
+.cashflow-date-label {
+  color: var(--amber-bright);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.cashflow-date-full {
+  color: var(--amber-mute);
+  font-size: 0.85em;
+}
+
+.cashflow-row .cashflow-amount {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+  text-align: right;
+  min-width: 90px;
+}
+.cashflow-row .cashflow-amount.income { color: var(--good); text-shadow: 0 0 4px rgba(158, 255, 122, 0.5); }
+.cashflow-row .cashflow-amount.outcome { color: var(--bad); text-shadow: 0 0 4px rgba(255, 90, 79, 0.5); }
+
+.cashflow-inline-edit {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.cashflow-inline-edit .kind-btn {
+  flex: 0 0 auto;
 }

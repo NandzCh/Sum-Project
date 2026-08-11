@@ -13,12 +13,12 @@ export function renderTitleBar() {
       h('span', { class: 'dot y' }),
       h('span', { class: 'dot g' }),
     ),
-    h('div', { class: 'title' }, 'habit-tracker — ~/journal'),
+    h('div', { class: 'title', id: 'app-title' }, 'habit-tracker — ~/journal'),
     h('div', { class: 'clock', id: 'clock' }, ''),
   );
 }
 
-export function renderFooter(onHelp) {
+export function renderFooter() {
   return h(
     'footer',
     { class: 'footer' },
@@ -40,6 +40,8 @@ export function renderFooter(onHelp) {
       ' day ',
       h('kbd', {}, '/'),
       ' tomorrow ',
+      h('kbd', {}, 'm'),
+      ' cashflow ',
       h('kbd', {}, 'Esc'),
       ' close',
     ),
