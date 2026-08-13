@@ -37,7 +37,7 @@ export function renderCashflow(state) {
     'div',
     { class: 'pane-head' },
     h('div', { class: 'label' }, 'cashflow'),
-    h('div', { class: 'hint' }, 'm to return to habits'),
+    h('div', { class: 'hint' }, ''),
   );
 
   const body = h('div', { class: 'pane-body cashflow-body' });

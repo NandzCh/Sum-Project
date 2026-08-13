@@ -118,7 +118,7 @@ body::after {
 }
 .dot.r { background: #ff5f56; box-shadow: 0 0 6px rgba(255, 95, 86, 0.45); }
 .dot.y { background: #ffbd2e; box-shadow: 0 0 6px rgba(255, 189, 46, 0.45); }
-.dot.g { background: #27c93f; box-shadow: 0 0 6px rgba(39, 201, 63, 0.45); }
+.dot.g { background: #2f27c9; box-shadow: 0 0 6px rgba(39, 201, 63, 0.45); }
 
 .titlebar .title {
   flex: 1;
@@ -130,7 +130,7 @@ body::after {
 }
 
 .clock {
-  color: var(--amber-dim);
+  color: var(--amber-bright);
   font-variant-numeric: tabular-nums;
   min-width: 80px;
   text-align: right;
@@ -315,7 +315,7 @@ body::after {
   text-shadow: var(--glow-soft);
 }
 .pane-head .hint {
-  color: var(--amber-mute);
+  color: var(--amber-bright);
   font-size: 0.85em;
 }
 
@@ -349,7 +349,7 @@ body::after {
   padding: 0 14px;
   border-top: var(--line);
   background: #0a0805;
-  color: var(--amber-mute);
+  color: var(--amber);
   font-size: 0.85em;
   user-select: none;
 }
@@ -559,7 +559,7 @@ button.primary:disabled {
 .calendar .wd {
   text-align: center;
   font-size: 0.8em;
-  color: var(--amber-mute);
+  color: var(--amber-dim);
   padding: 4px 0;
   letter-spacing: 0.04em;
 }
@@ -729,7 +729,7 @@ button.primary:disabled {
   gap: 4px;
 }
 .cashflow-tile .tile-label {
-  color: var(--amber-mute);
+  color: var(--amber);
   font-size: 0.8em;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -825,7 +825,7 @@ form.cashflow-form .cashflow-kind { grid-column: 1 / -1; }
   background: var(--bg-elev);
 }
 .cashflow-pill .pill-label {
-  color: var(--amber-mute);
+  color: var(--amber);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.85em;
