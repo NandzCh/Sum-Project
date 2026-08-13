@@ -187,3 +187,45 @@ if (import.meta.env && import.meta.env.DEV) {
     window.__habits = m;
   });
 }
+
+// Floating action button — left-bottom shortcut to open the cashflow view.
+// Visible on every screen; toggles cashflowView in state so the existing
+// render cycle handles the swap (no separate routing layer needed).
+const fab = h(
+  'button',
+  {
+    class: 'fab-cashflow',
+    type: 'button',
+    title: 'open cashflow (m)',
+    'aria-label': 'open cashflow',
+    onClick: () => {
+      const { cashflowView } = getState();
+      setCashflowView(!cashflowView);
+    },
+  },
+  h('span', { class: 'fab-icon', 'aria-hidden': 'true' }, '$'),
+  h('span', { class: 'fab-label' }, 'cashflow'),
+);
+document.body.appendChild(fab);
+
+// Reflect the current view in the FAB so it acts as a toggle, not just an
+// open shortcut. (Kept here rather than inside render() so a single
+// subscription is enough.)
+function syncFab() {
+  const { cashflowView } = getState();
+  if (cashflowView) {
+    fab.classList.add('active');
+    const lbl = qs('.fab-label', fab);
+    if (lbl) lbl.textContent = 'habits';
+    fab.title = 'back to habits (m)';
+    fab.setAttribute('aria-label', 'back to habits');
+  } else {
+    fab.classList.remove('active');
+    const lbl = qs('.fab-label', fab);
+    if (lbl) lbl.textContent = 'cashflow';
+    fab.title = 'open cashflow (m)';
+    fab.setAttribute('aria-label', 'open cashflow');
+  }
+}
+syncFab();
+subscribe(syncFab);

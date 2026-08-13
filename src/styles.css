@@ -153,6 +153,139 @@ body::after {
   #app { height: auto; min-height: 100vh; }
 }
 
+/* ─── Phone-friendly tweaks ───────────────────────────────────────── */
+/* Hit targets should be at least 44px on touch devices. Inputs and buttons
+   in this UI use small monospace text — we keep the visual size but enlarge
+   the tap area. */
+
+@media (max-width: 640px) {
+  html, body { font-size: 15px; }
+
+  .body {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .pane > .pane-head { padding: 10px 12px; }
+  .pane > .pane-body { padding: 10px; }
+
+  /* Larger touch targets for the check toggles. */
+  .row .check {
+    width: 36px;
+    height: 32px;
+    font-size: 1.05em;
+  }
+
+  /* Tap-friendly action buttons in lists. */
+  .row .icon-btn {
+    padding: 6px 10px;
+    min-height: 32px;
+  }
+
+  /* Forms: stack nicely, full-width primary buttons. */
+  form.planner {
+    grid-template-columns: 1fr;
+  }
+  form.planner button.primary {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Cashflow form: stack kind+amount+date+label into a single column. */
+  form.cashflow-form { grid-template-columns: 1fr; }
+  .cashflow-row { flex-wrap: wrap; }
+  .cashflow-row input[type="date"] {
+    flex: 1 1 100%;
+    min-width: 0;
+    min-height: 40px;
+  }
+  .cashflow-kind .kind-btn {
+    flex: 1 1 0;
+    min-height: 40px;
+  }
+  form.cashflow-form button.primary {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Tiles: shrink the numbers a touch and stack to 1 column. */
+  .cashflow-totals { grid-template-columns: 1fr; }
+  .cashflow-tile .tile-value { font-size: 1.1em; }
+
+  /* Make the calendar cells a bit bigger for fat fingers. */
+  .calendar { gap: 5px; }
+  .cell { font-size: 0.9em; }
+
+  /* Title bar: shrink the clock on narrow screens. */
+  .titlebar { gap: 8px; padding: 0 10px; }
+  .clock { min-width: 60px; font-size: 0.85em; }
+
+  /* Footer: hide the kbd hint strip on phones — there's no room, and the FAB
+     handles the cashflow switch. */
+  .footer { display: none; }
+
+  /* When the FAB is visible, leave room for it at the bottom of scroll. */
+  body { padding-bottom: 72px; }
+}
+
+/* Inputs across the app: prevent iOS from auto-zooming on focus. */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select { font-size: 16px; }
+}
+
+/* Cashflow FAB ─ fixed bottom-left button that opens the cashflow view.
+   On desktop it doubles as an alternative to the title click. */
+.fab-cashflow {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid var(--amber-bright);
+  border-radius: 999px;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: inherit;
+  font-size: 0.95em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: var(--glow-strong), 0 6px 20px rgba(0, 0, 0, 0.6);
+  text-shadow: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--transition), background var(--transition);
+}
+.fab-cashflow:hover { background: var(--amber-bright); }
+.fab-cashflow:active { transform: scale(0.96); }
+.fab-cashflow.active {
+  background: var(--bg-elev);
+  color: var(--amber-bright);
+  border-color: var(--amber-bright);
+  text-shadow: var(--glow-soft);
+  box-shadow: 0 0 4px rgba(255, 217, 122, 0.55), 0 0 10px rgba(255, 176, 0, 0.25), 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+.fab-cashflow .fab-icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* On phones, lift above the home indicator. */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .fab-cashflow {
+    left: max(16px, env(safe-area-inset-left));
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
 .pane {
   background: var(--bg-pane);
   border: var(--line);
