@@ -1,16 +1,49 @@
 // Full habit list — add via tomorrow.js; here we render with rename/delete.
 
 import { h } from '../dom.js';
-import { renameHabit, updateHabitDescription, deleteHabit } from '../state.js';
+import { renameHabit, updateHabitDescription, deleteHabit, moveHabit, archiveHabit, unarchiveHabit, undo } from '../state.js';
+import { showToast } from '../toast.js';
 
 export function renderHabits(state) {
   const list = h('div', { class: 'habits-list' });
 
-  if (state.habits.length === 0) {
+  const activeHabits = state.habits.filter((h) => !h.archived);
+  const archivedHabits = state.habits.filter((h) => h.archived);
+
+  if (activeHabits.length === 0 && archivedHabits.length === 0) {
     list.appendChild(h('div', { class: 'empty' }, '// nothing tracked yet'));
   } else {
-    for (const habit of state.habits) {
-      list.appendChild(renderHabitRow(habit));
+    if (activeHabits.length > 0) {
+      for (let i = 0; i < activeHabits.length; i++) {
+        list.appendChild(renderHabitRow(activeHabits[i], i, activeHabits.length, false));
+      }
+    }
+
+    if (archivedHabits.length > 0) {
+      const archiveToggle = h(
+        'button',
+        {
+          class: 'archive-toggle',
+          type: 'button',
+          onClick: (e) => {
+            const section = e.target.nextElementSibling;
+            if (section) {
+              section.hidden = !section.hidden;
+              e.target.textContent = section.hidden
+                ? `// show ${archivedHabits.length} archived ›`
+                : `// hide ${archivedHabits.length} archived ‹`;
+            }
+          },
+        },
+        `// show ${archivedHabits.length} archived ›`,
+      );
+      list.appendChild(archiveToggle);
+
+      const archiveSection = h('div', { class: 'archive-section', hidden: true });
+      for (const habit of archivedHabits) {
+        archiveSection.appendChild(renderHabitRow(habit, -1, -1, true));
+      }
+      list.appendChild(archiveSection);
     }
   }
 
@@ -18,13 +51,13 @@ export function renderHabits(state) {
     'div',
     { class: 'pane-head' },
     h('div', { class: 'label' }, 'habits'),
-    h('div', { class: 'hint' }, `${state.habits.length} tracked`),
+    h('div', { class: 'hint' }, `${activeHabits.length} active${archivedHabits.length > 0 ? ` · ${archivedHabits.length} archived` : ''}`),
   );
   const body = h('div', { class: 'pane-body' }, list);
   return h('section', { class: 'pane pane-habits' }, head, body);
 }
 
-function renderHabitRow(habit) {
+function renderHabitRow(habit, index, total, isArchived) {
   const nameSpan = h('div', { class: 'name' }, habit.name);
   const descSpan = habit.description
     ? h('div', { class: 'desc' }, habit.description)
@@ -32,9 +65,7 @@ function renderHabitRow(habit) {
 
   const labelBlock = h('div', { class: 'label-block' }, nameSpan, descSpan);
 
-  const actions = h(
-    'div',
-    { class: 'row-actions' },
+  const actionButtons = [
     h(
       'button',
       {
@@ -44,6 +75,35 @@ function renderHabitRow(habit) {
       },
       'edit',
     ),
+  ];
+
+  if (isArchived) {
+    actionButtons.push(
+      h(
+        'button',
+        {
+          class: 'icon-btn',
+          title: 'unarchive (restore to active list)',
+          onClick: () => unarchiveHabit(habit.id),
+        },
+        'unarchive',
+      ),
+    );
+  } else {
+    actionButtons.push(
+      h(
+        'button',
+        {
+          class: 'icon-btn',
+          title: 'archive (hide from active list)',
+          onClick: () => archiveHabit(habit.id),
+        },
+        'archive',
+      ),
+    );
+  }
+
+  actionButtons.push(
     h(
       'button',
       {
@@ -52,6 +112,15 @@ function renderHabitRow(habit) {
         onClick: () => {
           if (confirm(`Delete habit "${habit.name}"? History is preserved.`)) {
             deleteHabit(habit.id);
+            showToast(`Deleted "${habit.name}"`, {
+              action: 'undo',
+              onAction: () => {
+                const result = undo();
+                if (result) {
+                  showToast(`Restored "${result.name}"`, { duration: 3000 });
+                }
+              },
+            });
           }
         },
       },
@@ -59,7 +128,42 @@ function renderHabitRow(habit) {
     ),
   );
 
-  return h('div', { class: 'row' }, labelBlock, actions);
+  const actions = h('div', { class: 'row-actions' });
+
+  if (!isArchived && index >= 0 && total > 0) {
+    const reorderActions = h(
+      'div',
+      { class: 'reorder-actions' },
+      h(
+        'button',
+        {
+          class: 'icon-btn reorder-btn',
+          title: 'move up',
+          disabled: index === 0,
+          onClick: () => moveHabit(habit.id, 'up'),
+        },
+        '↑',
+      ),
+      h(
+        'button',
+        {
+          class: 'icon-btn reorder-btn',
+          title: 'move down',
+          disabled: index === total - 1,
+          onClick: () => moveHabit(habit.id, 'down'),
+        },
+        '↓',
+      ),
+    );
+    actions.appendChild(reorderActions);
+  }
+
+  for (const btn of actionButtons) {
+    actions.appendChild(btn);
+  }
+
+  const rowClass = isArchived ? 'row archived-row' : 'row';
+  return h('div', { class: rowClass }, labelBlock, actions);
 }
 
 function beginEdit(habit, nameSpan, descSpan, actions, labelBlock) {

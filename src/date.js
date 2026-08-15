@@ -100,7 +100,7 @@ export function yearMonthOf(key) {
 export function prettyDay(key) {
   const d = parseKey(key);
   const weekday = WEEKDAYS[d.getDay()];
-  return `${weekday} ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  return `${weekday}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export function shortDay(key) {

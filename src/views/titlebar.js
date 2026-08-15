@@ -48,16 +48,15 @@ export function renderFooter() {
   );
 }
 
-// Clock — independent of state. Updates every second.
+// Clock — independent of state. Updates every minutes.
 export function startClock(node) {
   function tick() {
     const d = new Date();
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    node.textContent = `${hh}:${mm}:${ss}`;
+    node.textContent = `${hh}:${mm}`;
   }
   tick();
-  const id = setInterval(tick, 1000);
+  const id = setInterval(tick, 60000);
   return () => clearInterval(id);
 }

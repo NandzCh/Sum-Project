@@ -22,7 +22,7 @@
   --line: 1px solid var(--amber-faint);
   --line-bright: 1px solid var(--amber-dim);
 
-  --transition: 120ms ease-out;
+  --transition: 360ms ease-in-out;
 }
 
 * {
@@ -233,6 +233,81 @@ body::after {
   input, textarea, select { font-size: 16px; }
 }
 
+/* Toast notifications ─ slide up from bottom-right for undo and feedback */
+.toast-container {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--amber-dim);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), var(--shadow-pane);
+  color: var(--amber);
+  font-size: 0.9em;
+  min-width: 280px;
+  max-width: 400px;
+  pointer-events: auto;
+  transform: translateY(120%);
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast-message {
+  flex: 1 1 auto;
+}
+
+.toast-action {
+  background: transparent;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber-bright);
+  font-family: inherit;
+  font-size: 0.85em;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.toast-action:hover {
+  border-color: var(--amber-bright);
+  background: rgba(255, 176, 0, 0.1);
+  text-shadow: var(--glow-soft);
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--amber-mute);
+  font-family: inherit;
+  font-size: 1.2em;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.toast-close:hover {
+  color: var(--amber);
+  background: rgba(255, 176, 0, 0.1);
+}
+
 /* Cashflow FAB ─ fixed bottom-left button that opens the cashflow view.
    On desktop it doubles as an alternative to the title click. */
 .fab-cashflow {
@@ -260,7 +335,11 @@ body::after {
   -webkit-tap-highlight-color: transparent;
   transition: transform var(--transition), background var(--transition);
 }
-.fab-cashflow:hover { background: var(--amber-bright); }
+.fab-cashflow:hover { 
+  background: var(--amber-bright);
+  border-radius: 20px;
+  transform: scale(1.1);
+ }
 .fab-cashflow:active { transform: scale(0.96); }
 .fab-cashflow.active {
   background: var(--bg-elev);
@@ -305,6 +384,7 @@ body::after {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .pane-head .label {
@@ -317,6 +397,29 @@ body::after {
 .pane-head .hint {
   color: var(--amber-bright);
   font-size: 0.85em;
+}
+
+.bulk-actions {
+  margin-left: auto;
+}
+
+.bulk-btn {
+  background: transparent;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: inherit;
+  font-size: 0.75em;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.bulk-btn:hover {
+  color: var(--amber-bright);
+  border-color: var(--amber);
+  text-shadow: var(--glow-soft);
+  background: rgba(255, 176, 0, 0.05);
 }
 
 .pane > .pane-body {
@@ -456,6 +559,58 @@ body::after {
   text-shadow: var(--glow-soft);
 }
 .row .icon-btn.danger:hover { color: var(--bad); border-color: var(--bad); }
+
+.row .reorder-actions {
+  display: flex;
+  gap: 2px;
+  margin-right: 6px;
+  padding-right: 6px;
+  border-right: 1px solid var(--amber-faint);
+}
+.row .icon-btn.reorder-btn {
+  padding: 2px 5px;
+  font-size: 0.9em;
+  line-height: 1;
+}
+.row .icon-btn.reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  color: var(--amber-mute);
+}
+.row .icon-btn.reorder-btn:disabled:hover {
+  color: var(--amber-mute);
+  border-color: transparent;
+  text-shadow: var(--glow-soft);
+}
+
+.archive-toggle {
+  background: transparent;
+  border: none;
+  color: var(--amber-dim);
+  font-family: inherit;
+  font-size: 0.9em;
+  padding: 8px 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  margin-top: 12px;
+}
+.archive-toggle:hover {
+  color: var(--amber);
+}
+
+.archive-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--amber-faint);
+}
+
+.archived-row {
+  opacity: 0.6;
+}
+.archived-row:hover {
+  opacity: 0.85;
+}
 
 /* ─── Forms ───────────────────────────────────────────────────────── */
 

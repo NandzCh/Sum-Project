@@ -4,6 +4,8 @@ import * as storage from './storage.js';
 import { todayKey, yearMonthOf } from './date.js';
 
 const listeners = new Set();
+let undoStack = [];
+const MAX_UNDO = 10;
 
 function defaultState() {
   const today = todayKey();
@@ -67,6 +69,7 @@ export function addHabit({ name, description = '' }) {
     id: newId(),
     name: trimmed,
     description: description.trim(),
+    archived: false,
     createdAt: new Date().toISOString(),
   };
   commit({ habits: [...state.habits, habit] });
@@ -89,7 +92,38 @@ export function updateHabitDescription(id, description) {
 
 export function deleteHabit(id) {
   // Removes the habit but leaves completions untouched — history is immutable.
+  const deletedHabit = state.habits.find((h) => h.id === id);
+  if (!deletedHabit) return;
+
+  // Push to undo stack before deletion
+  pushUndo({
+    type: 'deleteHabit',
+    habit: { ...deletedHabit },
+  });
+
   commit({ habits: state.habits.filter((h) => h.id !== id) });
+}
+
+export function moveHabit(id, direction) {
+  const idx = state.habits.findIndex((h) => h.id === id);
+  if (idx === -1) return;
+  const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (newIdx < 0 || newIdx >= state.habits.length) return;
+  const newHabits = [...state.habits];
+  [newHabits[idx], newHabits[newIdx]] = [newHabits[newIdx], newHabits[newIdx], newHabits[idx]];
+  commit({ habits: newHabits });
+}
+
+export function archiveHabit(id) {
+  commit({
+    habits: state.habits.map((h) => (h.id === id ? { ...h, archived: true } : h)),
+  });
+}
+
+export function unarchiveHabit(id) {
+  commit({
+    habits: state.habits.map((h) => (h.id === id ? { ...h, archived: false } : h)),
+  });
 }
 
 export function setCompletion(dateKey, habitId, done) {
@@ -169,7 +203,50 @@ export function updateTransaction(id, patch) {
 }
 
 export function deleteTransaction(id) {
+  const deletedTx = state.transactions.find((t) => t.id === id);
+  if (!deletedTx) return;
+
+  // Push to undo stack before deletion
+  pushUndo({
+    type: 'deleteTransaction',
+    transaction: { ...deletedTx },
+  });
+
   commit({ transactions: state.transactions.filter((t) => t.id !== id) });
+}
+
+function pushUndo(action) {
+  undoStack.push(action);
+  if (undoStack.length > MAX_UNDO) {
+    undoStack.shift();
+  }
+  notify(); // Notify to update any undo UI
+}
+
+export function canUndo() {
+  return undoStack.length > 0;
+}
+
+export function getLastUndoAction() {
+  return undoStack[undoStack.length - 1] || null;
+}
+
+export function undo() {
+  if (undoStack.length === 0) return false;
+
+  const action = undoStack.pop();
+
+  if (action.type === 'deleteHabit') {
+    // Restore the habit
+    commit({ habits: [...state.habits, action.habit] });
+    return { type: 'habit', name: action.habit.name };
+  } else if (action.type === 'deleteTransaction') {
+    // Restore the transaction
+    commit({ transactions: [...state.transactions, action.transaction] });
+    return { type: 'transaction', label: action.transaction.label };
+  }
+
+  return false;
 }
 
 export function setCashflowView(on) {

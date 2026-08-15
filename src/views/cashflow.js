@@ -8,7 +8,9 @@ import {
   updateTransaction,
   deleteTransaction,
   cashflowTotals,
+  undo,
 } from '../state.js';
+import { showToast } from '../toast.js';
 
 // Plain number formatter with thousand separators, no currency symbol.
 export function fmt(n) {
@@ -255,6 +257,15 @@ function renderTxRow(tx) {
         onClick: () => {
           if (confirm(`Delete ${tx.kind} of ${fmt(tx.amount)}${tx.label ? ' for "' + tx.label + '"' : ''}?`)) {
             deleteTransaction(tx.id);
+            showToast(`Deleted ${tx.kind} transaction`, {
+              action: 'undo',
+              onAction: () => {
+                const result = undo();
+                if (result) {
+                  showToast(`Restored ${result.type}`, { duration: 3000 });
+                }
+              },
+            });
           }
         },
       },
@@ -366,7 +377,18 @@ function renderOriginalActions(tx, labelBlock, valueEl, actions) {
         class: 'icon-btn danger',
         title: 'delete',
         onClick: () => {
-          if (confirm(`Delete this ${tx.kind}?`)) deleteTransaction(tx.id);
+          if (confirm(`Delete this ${tx.kind}?`)) {
+            deleteTransaction(tx.id);
+            showToast(`Deleted ${tx.kind} transaction`, {
+              action: 'undo',
+              onAction: () => {
+                const result = undo();
+                if (result) {
+                  showToast(`Restored ${result.type}`, { duration: 3000 });
+                }
+              },
+            });
+          }
         },
       },
       'del',
