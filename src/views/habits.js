@@ -11,7 +11,7 @@ export function renderHabits(state) {
   const archivedHabits = state.habits.filter((h) => h.archived);
 
   if (activeHabits.length === 0 && archivedHabits.length === 0) {
-    list.appendChild(h('div', { class: 'empty' }, '// nothing tracked yet'));
+    list.appendChild(h('div', { class: 'empty' }, 'nothing tracked yet'));
   } else {
     if (activeHabits.length > 0) {
       for (let i = 0; i < activeHabits.length; i++) {

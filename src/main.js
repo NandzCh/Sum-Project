@@ -2,7 +2,7 @@
 
 import './styles.css';
 
-import { getState, subscribe, setCashflowView } from './state.js';
+import { getState, subscribe, setCashflowView, subscribeToErrors, exportStateAsJSON, importStateFromJSON } from './state.js';
 import { renderTitleBar, renderFooter, startClock } from './views/titlebar.js';
 import { renderTomorrow } from './views/tomorrow.js';
 import { renderToday } from './views/today.js';
@@ -12,8 +12,11 @@ import { renderInspector } from './views/inspector.js';
 import { renderCashflow } from './views/cashflow.js';
 import { attachKeyboard } from './keyboard.js';
 import { h, qs, clear } from './dom.js';
+import { showToast } from './toast.js';
+import { onStorageError } from './storage.js';
 
 const root = qs('#app');
+const HELP_AUTO_CLOSE_MS = 10_000;
 
 // Static chrome — title bar + footer (footer text doesn't change).
 function mountChrome() {
@@ -39,6 +42,70 @@ function mountChrome() {
 }
 
 const refs = mountChrome();
+
+// Error handling: subscribe to storage and state errors and show toasts.
+onStorageError((error) => {
+  const errorMessages = {
+    unavailable: 'Storage unavailable. Data will not persist.',
+    quota: 'Storage full. Delete old data or export a backup.',
+    corrupt: 'Saved data corrupted. Starting fresh.',
+    security: 'Cannot save due to browser restrictions.',
+    version: 'Data version mismatch.',
+  };
+
+  const message = errorMessages[error.type] || error.message;
+
+  if (error.type === 'quota' || error.type === 'unavailable') {
+    showToast(message, {
+      action: 'export',
+      onAction: () => downloadBackup(),
+      duration: 10000,
+    });
+  } else if (error.type === 'corrupt' && error.canRetry) {
+    showToast(message, { duration: 7000 });
+  } else {
+    showToast(message, { duration: 6000 });
+  }
+});
+
+subscribeToErrors((error) => {
+  if (error.type === 'critical' && error.action === 'export') {
+    showToast(error.message, {
+      action: 'export now',
+      onAction: () => downloadBackup(),
+      duration: 0, // Don't auto-hide critical errors
+    });
+  } else if (error.type === 'validation') {
+    showToast(error.message, { duration: 4000 });
+  } else {
+    showToast(error.message, { duration: 5000 });
+  }
+});
+
+// Helper to download data backup as JSON file.
+function downloadBackup() {
+  try {
+    const data = exportStateAsJSON();
+    if (!data) {
+      showToast('Failed to export data', { duration: 3000 });
+      return;
+    }
+
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `habit-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Backup downloaded successfully', { duration: 3000 });
+  } catch (err) {
+    showToast(`Export failed: ${err.message}`, { duration: 5000 });
+  }
+}
 
 // Reactive: re-render body content on state changes.
 // We preserve focus + selection across re-renders by remembering the active
@@ -107,11 +174,57 @@ const overlay = h('div', {
     if (e.target === overlay) overlay.hidden = true;
   },
 });
+
+const exportBtn = h(
+  'button',
+  {
+    class: 'bulk-btn',
+    type: 'button',
+    style: 'margin-right: 8px;',
+    onClick: () => downloadBackup(),
+  },
+  'export data',
+);
+
+const importBtn = h(
+  'button',
+  {
+    class: 'bulk-btn',
+    type: 'button',
+    onClick: () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const success = importStateFromJSON(ev.target.result);
+            if (success) {
+              showToast('Data imported successfully. Reloading...', { duration: 2000 });
+              setTimeout(() => window.location.reload(), 2000);
+            } else {
+              showToast('Import failed. Check console for details.', { duration: 5000 });
+            }
+          } catch (err) {
+            showToast(`Import error: ${err.message}`, { duration: 5000 });
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    },
+  },
+  'import data',
+);
+
 overlay.appendChild(
   h(
     'div',
     { class: 'help-modal' },
-    h('h2', {}, '// help'),
+    h('h2', {}, 'help'),
     h(
       'dl',
       {},
@@ -128,7 +241,14 @@ overlay.appendChild(
       h('dt', {}, h('kbd', {}, 'Esc')),
       h('dd', {}, 'close help / blur inputs'),
     ),
-    h('div', { class: 'close' }, '// click outside or press Esc'),
+    h('h2', { style: 'margin-top: 20px;' }, 'data'),
+    h(
+      'div',
+      { style: 'margin-top: 8px;' },
+      exportBtn,
+      importBtn,
+    ),
+    h('div', { class: 'close' }, ' click outside or press Esc'),
   ),
 );
 document.body.appendChild(overlay);
@@ -136,7 +256,7 @@ document.body.appendChild(overlay);
 // Auto-dismiss the help overlay after 10s of no user input (no keyboard or
 // mouse activity). Any input resets the timer; the timer only runs while the
 // overlay is visible.
-const HELP_AUTO_CLOSE_MS = 10_000;
+
 let helpHideTimer = null;
 function clearHelpHideTimer() {
   if (helpHideTimer != null) {

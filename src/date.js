@@ -1,4 +1,9 @@
 // Pure date helpers. All keys are local-time YYYY-MM-DD — never toISOString().
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function formatKey(date) {
   const y = date.getFullYear();
@@ -27,12 +32,6 @@ export function shiftDay(key, n) {
   d.setDate(d.getDate() + n);
   return formatKey(d);
 }
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function monthLabel(year, month) {
   return `${MONTHS[month]} ${year}`;

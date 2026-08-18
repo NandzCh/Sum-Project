@@ -63,7 +63,7 @@ export function renderTomorrow() {
     'div',
     { class: 'pane-head' },
     h('div', { class: 'label' }, 'tomorrow’s plan'),
-    h('div', { class: 'hint' }, '/ to focus'),
+    h('div', { class: 'hint' }, ' to focus'),
   );
 
   const body = h(
@@ -72,7 +72,7 @@ export function renderTomorrow() {
     h(
       'div',
       { class: 'hint', style: { color: 'var(--amber-mute)', marginBottom: '8px' } },
-      '// things I want to do tomorrow',
+      'things I want to do tomorrow',
     ),
     form,
   );
