@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  // Use the repo root's port neighbor so the rest of the Python files aren't disturbed.
+  plugins: [react()],
   server: {
     port: 5173,
     open: false,

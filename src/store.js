@@ -1,7 +1,11 @@
-// In-memory state with pub/sub. Every mutator persists and notifies.
+// React state management via context + hooks.
+// Wraps the same localStorage-backed logic from the vanilla app.
 
+import { createContext, useContext, useCallback, useSyncExternalStore } from 'react';
 import * as storage from './storage.js';
 import { todayKey, yearMonthOf } from './date.js';
+
+// ─── Internal store (same shape as the old state.js) ─────────────────────────
 
 const listeners = new Set();
 const errorListeners = new Set();
@@ -41,18 +45,13 @@ let state = (() => {
   return init;
 })();
 
-export function getState() {
+function getSnapshot() {
   return state;
 }
 
-export function subscribe(fn) {
+function subscribe(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
-}
-
-export function subscribeToErrors(fn) {
-  errorListeners.add(fn);
-  return () => errorListeners.delete(fn);
 }
 
 function notifyError(error) {
@@ -60,7 +59,7 @@ function notifyError(error) {
 }
 
 function notify() {
-  for (const fn of listeners) fn(state);
+  for (const fn of listeners) fn();
 }
 
 function commit(patch) {
@@ -73,7 +72,7 @@ function commit(patch) {
       notifyError({
         type: 'critical',
         message: 'Failed to save data multiple times. Your changes may not persist. Consider exporting your data.',
-        action: 'export'
+        action: 'export',
       });
     }
   } else {
@@ -87,6 +86,21 @@ function newId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'h_' + Math.random().toString(36).slice(2, 11);
 }
+
+function txId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 't_' + Math.random().toString(36).slice(2, 11);
+}
+
+function pushUndo(action) {
+  undoStack.push(action);
+  if (undoStack.length > MAX_UNDO) {
+    undoStack.shift();
+  }
+  notify();
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
 
 export function addHabit({ name, description = '' }) {
   try {
@@ -134,16 +148,9 @@ export function updateHabitDescription(id, description) {
 }
 
 export function deleteHabit(id) {
-  // Removes the habit but leaves completions untouched — history is immutable.
   const deletedHabit = state.habits.find((h) => h.id === id);
   if (!deletedHabit) return;
-
-  // Push to undo stack before deletion
-  pushUndo({
-    type: 'deleteHabit',
-    habit: { ...deletedHabit },
-  });
-
+  pushUndo({ type: 'deleteHabit', habit: { ...deletedHabit } });
   commit({ habits: state.habits.filter((h) => h.id !== id) });
 }
 
@@ -170,7 +177,6 @@ export function unarchiveHabit(id) {
 }
 
 export function setCompletion(dateKey, habitId, done) {
-  // No-op if the habit doesn't exist (history-only entries are preserved).
   if (!state.habits.some((h) => h.id === habitId)) return;
   const day = { ...(state.completions[dateKey] || {}) };
   if (done) day[habitId] = true;
@@ -195,22 +201,15 @@ export function shiftViewMonth(delta) {
   commit({ viewMonth: { year, month } });
 }
 
-export function isHabitDone(dateKey, habitId) {
-  return Boolean(state.completions[dateKey]?.[habitId]);
+export function setCashflowView(on) {
+  commit({ cashflowView: Boolean(on) });
 }
 
-export function habitById(id) {
-  return state.habits.find((h) => h.id === id) || null;
+export function toggleCashflowView() {
+  commit({ cashflowView: !state.cashflowView });
 }
 
-// ─── Cashflow ────────────────────────────────────────────────────────
-// A transaction is { id, kind: 'income' | 'outcome', amount: number, label: string, dateKey: YYYY-MM-DD, createdAt: ISO string }.
-// Amounts are always stored as positive numbers — `kind` carries the sign.
-
-function txId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return 't_' + Math.random().toString(36).slice(2, 11);
-}
+// ─── Cashflow actions ────────────────────────────────────────────────────────
 
 export function addTransaction({ kind, amount, label, dateKey }) {
   try {
@@ -261,8 +260,7 @@ export function updateTransaction(id, patch) {
           }
         }
         if (patch.label != null) {
-          const trimmed = String(patch.label).trim();
-          next.label = trimmed.slice(0, 200);
+          next.label = String(patch.label).trim().slice(0, 200);
         }
         if (patch.dateKey) next.dateKey = patch.dateKey;
         return next;
@@ -276,48 +274,21 @@ export function updateTransaction(id, patch) {
 export function deleteTransaction(id) {
   const deletedTx = state.transactions.find((t) => t.id === id);
   if (!deletedTx) return;
-
-  // Push to undo stack before deletion
-  pushUndo({
-    type: 'deleteTransaction',
-    transaction: { ...deletedTx },
-  });
-
+  pushUndo({ type: 'deleteTransaction', transaction: { ...deletedTx } });
   commit({ transactions: state.transactions.filter((t) => t.id !== id) });
-}
-
-function pushUndo(action) {
-  undoStack.push(action);
-  if (undoStack.length > MAX_UNDO) {
-    undoStack.shift();
-  }
-  notify(); // Notify to update any undo UI
-}
-
-export function canUndo() {
-  return undoStack.length > 0;
-}
-
-export function getLastUndoAction() {
-  return undoStack[undoStack.length - 1] || null;
 }
 
 export function undo() {
   try {
     if (undoStack.length === 0) return false;
-
     const action = undoStack.pop();
-
     if (action.type === 'deleteHabit') {
-      // Restore the habit
       commit({ habits: [...state.habits, action.habit] });
       return { type: 'habit', name: action.habit.name };
     } else if (action.type === 'deleteTransaction') {
-      // Restore the transaction
       commit({ transactions: [...state.transactions, action.transaction] });
       return { type: 'transaction', label: action.transaction.label };
     }
-
     return false;
   } catch (err) {
     notifyError({ type: 'error', message: `Undo failed: ${err.message}` });
@@ -325,15 +296,6 @@ export function undo() {
   }
 }
 
-export function setCashflowView(on) {
-  commit({ cashflowView: Boolean(on) });
-}
-
-export function toggleCashflowView() {
-  commit({ cashflowView: !state.cashflowView });
-}
-
-// Aggregates: returns signed totals so callers can show +income / -outcome in one number.
 export function cashflowTotals(transactions) {
   try {
     let income = 0;
@@ -343,23 +305,17 @@ export function cashflowTotals(transactions) {
       else outcome += t.amount;
     }
     return { income, outcome, balance: income - outcome };
-  } catch (err) {
-    notifyError({ type: 'error', message: `Failed to calculate totals: ${err.message}` });
+  } catch {
     return { income: 0, outcome: 0, balance: 0 };
   }
 }
 
-// Export and import functions for data portability
+// ─── Export / Import ─────────────────────────────────────────────────────────
+
 export function exportStateAsJSON() {
   try {
-    const exported = storage.exportData();
-    if (!exported) {
-      notifyError({ type: 'export', message: 'Failed to export data.' });
-      return null;
-    }
-    return exported;
-  } catch (err) {
-    notifyError({ type: 'error', message: `Export failed: ${err.message}` });
+    return storage.exportData() || null;
+  } catch {
     return null;
   }
 }
@@ -368,7 +324,6 @@ export function importStateFromJSON(jsonString) {
   try {
     const success = storage.importData(jsonString);
     if (success) {
-      // Reload state from storage
       const loaded = storage.load();
       if (loaded) {
         const today = todayKey();
@@ -384,10 +339,21 @@ export function importStateFromJSON(jsonString) {
         return true;
       }
     }
-    notifyError({ type: 'import', message: 'Failed to import data.' });
     return false;
-  } catch (err) {
-    notifyError({ type: 'error', message: `Import failed: ${err.message}` });
+  } catch {
     return false;
   }
+}
+
+// ─── React hook ──────────────────────────────────────────────────────────────
+
+export function useStore() {
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+// ─── Error subscription (for Toast system) ───────────────────────────────────
+
+export function subscribeToErrors(fn) {
+  errorListeners.add(fn);
+  return () => errorListeners.delete(fn);
 }
